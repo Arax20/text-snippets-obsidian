@@ -25,7 +25,7 @@ You can use the shortcut (default `CTRL/CMD + Tab`) or the command `Run snippet 
 ![tabstop-demo](https://raw.githubusercontent.com/Arax20/text-snippets-obsidian/main/tabstop_demo.gif)
 
 
-### Clipbaord
+### Clipboard
 
 - Use ```$xx$``` to add a pastesymbol
 - All pastesymbols will be replaced with the clipboard content when the snippet is triggered
