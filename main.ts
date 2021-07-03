@@ -102,6 +102,7 @@ export default class TextSnippets extends Plugin {
 		var snippets =  this.settings.snippets;
 		var endSymbol = this.settings.endSymbol;
 		var nlSymb = this.settings.newlineSymbol;
+		var pasteSymbol = this.settings.pasteSymbol;
 
 		var selectedWoSpaces = selectedText.split(' ').join('');
 
@@ -125,66 +126,78 @@ export default class TextSnippets extends Plugin {
 		}
 
 		newStr = newStr.split('\n').join('');
-		var nlinesCount = 0;
-		
-		var rawEnd = newStr.indexOf(endSymbol);
-		if (rawEnd == -1) {
-			rawEnd = newStr.length;
-		}
-		var lastNl = newStr.substring(0, rawEnd).lastIndexOf(nlSymb);
-		if (lastNl != -1) {
-			var endPosIndex = rawEnd - lastNl - nlSymb.length - cursor.ch;
-			
-		} else {
-			var endPosIndex = rawEnd;
-		}
 
-		nlSymb = nlSymb.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');	//no special symbols in nlSymb
-		var rg = nlSymb + '\\n' + '|' + nlSymb;
-		const regex = new RegExp(rg);
-		const regexF = new RegExp(rg, 'g');
+		// Paste symbol
+		navigator.clipboard.readText().then(
+			(clipText) => {
+				newStr = newStr.replace(pasteSymbol, clipText);
+				expand(newStr);
+			}, (_) => expand(newStr));
 
-		nlinesCount = (newStr.substring(0, rawEnd).match(regexF) || []).length;
-		newStr = newStr.split(regex).join('\n');
+		function expand(newStr: string) {
+			var nlinesCount = 0;
 
-		newStr = newStr.replace(endSymbol,'');
+			// End symbol
+			var rawEnd = newStr.indexOf(endSymbol);
+			if (rawEnd == -1) {
+				rawEnd = newStr.length;
+			}
+			var lastNl = newStr.substring(0, rawEnd).lastIndexOf(nlSymb);
+			if (lastNl != -1) {
+				var endPosIndex = rawEnd - lastNl - nlSymb.length - cursor.ch;
+				
+			} else {
+				var endPosIndex = rawEnd;
+			}
 
-		if(newStr == "") {
-			editor.setCursor({
-				line: cursorOrig.line,
-				ch: cursorOrig.ch
-			});
-			this.nextStop();
-		} else {
-			editor.replaceSelection(newStr);
-			editor.setCursor({
-				line: cursor.line + nlinesCount,
-				ch: cursor.ch + endPosIndex
-			});
+			// Newline Symbol
+			nlSymb = nlSymb.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');	//no special symbols in nlSymb
+			var rg = nlSymb + '\\n' + '|' + nlSymb;
+			const regex = new RegExp(rg);
+			const regexF = new RegExp(rg, 'g');
 
-			editor.focus();
-		}
+			nlinesCount = (newStr.substring(0, rawEnd).match(regexF) || []).length;
+			newStr = newStr.split(regex).join('\n');
+
+			newStr = newStr.replace(endSymbol,'');
+
+			if(newStr == "") {
+				editor.setCursor({
+					line: cursorOrig.line,
+					ch: cursorOrig.ch
+				});
+				this.nextStop();
+			} else {
+				editor.replaceSelection(newStr);
+				editor.setCursor({
+					line: cursor.line + nlinesCount,
+					ch: cursor.ch + endPosIndex
+				});
+
+				editor.focus();
+			}
+		} // function expand
 	}
 
 	adjustCursor(editor: CodeMirror.Editor, cursor: CodeMirror.Position, newStr: string, oldStr: string) {
 		var cursorOffset = newStr.length - oldStr.length;
 		this.adjustCursorOffset(editor, cursor, cursorOffset);
 	}
-
+	
 	adjustCursorOffset(editor: CodeMirror.Editor, cursor: CodeMirror.Position, cursorOffset: any) {
 		editor.setCursor({
 			line: cursor.line,
 			ch: cursor.ch + cursorOffset
 		});
 	}
-
+	
 	handleKeyDown (cm: CodeMirror.Editor, event: KeyboardEvent): void { 
 		if (event.key == 'Tab' && this.settings.useTab) { 
 			this.onTrigger("replace");
 			event.preventDefault();
 		}
 	}
-
+	
 	nextStop(): void {
 		let activeLeaf: any = this.app.workspace.activeLeaf;
 		let cm = activeLeaf.view.sourceMode.cmEditor;
@@ -196,13 +209,14 @@ export default class TextSnippets extends Plugin {
 		cm.execCommand("insertTab");
 	}
 }
-
+	
 interface TextSnippetsSettings {
 	snippets_file: string;
 	snippets: string[];
 	endSymbol: string;
 	newlineSymbol: string;
 	stopSymbol: string;
+	pasteSymbol: string;
 	useTab: boolean;
 }
 
@@ -212,9 +226,9 @@ const DEFAULT_SETTINGS: TextSnippetsSettings = {
 	endSymbol: '$end$',
 	newlineSymbol: '$nl$',
 	stopSymbol: "<++>",
+	pasteSymbol: "$xx$",
 	useTab: false,
 }
-
 class TextSnippetsSettingsTab extends PluginSettingTab {
 	plugin: TextSnippets;
 
@@ -244,7 +258,7 @@ class TextSnippetsSettingsTab extends PluginSettingTab {
 				this.plugin.UpdateSplit(this.plugin.settings.newlineSymbol);
 				await this.plugin.saveSettings();
 			})
-		);
+			);
 		new Setting(containerEl)
 		.setName("Cursor end position mark")
 		.setDesc("Places the cursor to the mark position after inserting a snippet (default: $end$).\nMark does not appear anywhere within the snippet.")
@@ -260,7 +274,7 @@ class TextSnippetsSettingsTab extends PluginSettingTab {
 				this.plugin.settings.endSymbol = value;
 				await this.plugin.saveSettings();
 			})
-		);
+			);
 		new Setting(containerEl)
 		.setName("Newline mark")
 		.setDesc("Ignores newline after mark, replace it with a newline character after expanding (default: $nl$).\nNecessary to write before every line break in multiline snippets.")
@@ -277,11 +291,11 @@ class TextSnippetsSettingsTab extends PluginSettingTab {
 				this.plugin.UpdateSplit(value);
 				await this.plugin.saveSettings();
 			})
-		);
+			);
 		new Setting(containerEl)
 		.setName('Stop Symbol')
 		.setDesc('Symbol to jump to when command is called.')
-		.setClass("simple-tabstops-stopsymbol")
+		.setClass("text-snippets-stop")
 		.addTextArea((text) => text
 			.setPlaceholder('')
 			.setValue(this.plugin.settings.stopSymbol)
@@ -295,6 +309,22 @@ class TextSnippetsSettingsTab extends PluginSettingTab {
 			);
 
 		new Setting(containerEl)
+		.setName('Paste Symbol')
+		.setDesc('Symbol to replace with clipbaord contents when triggered')
+		.setClass("text-snippets-paste")
+		.addTextArea((text) => text
+			.setPlaceholder('')
+			.setValue(this.plugin.settings.pasteSymbol)
+			.onChange(async (value) => {
+				if (value =='') {
+					value = '$xx$';
+				}
+				this.plugin.settings.pasteSymbol = value;
+				await this.plugin.saveSettings();
+			})
+			);
+
+		new Setting(containerEl)
 		.setName("Use Tab")
 		.setDesc("Uses the Tab key as the trigger")
 		.addToggle(toggle =>
@@ -303,6 +333,6 @@ class TextSnippetsSettingsTab extends PluginSettingTab {
 				this.plugin.settings.useTab = !this.plugin.settings.useTab;
 				await this.plugin.saveSettings();
 			})
-			);
+		);
 	}
 }
