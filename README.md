@@ -24,6 +24,14 @@ You can use the shortcut (default `CTRL/CMD + Tab`) or the command `Run snippet 
 
 ![tabstop-demo](https://raw.githubusercontent.com/Arax20/text-snippets-obsidian/main/tabstop_demo.gif)
 
+
+### Clipbaord
+
+- Use ```$xx$``` to add a pastesymbol
+- All pastesymbols will be replaced with the clipboard content when the snippet is triggered
+
+![paste-demo](https://raw.githubusercontent.com/Arax20/text-snippets-obsidian/main/paste_demo.gif)
+
 ## How to install
 
 ### In Obsidian app
@@ -32,5 +40,7 @@ In Obsidian go to `Settings > Third-party plugins > Community Plugins > Browse` 
 
 ### Manually installing the plugin
 
-- Copy over `main.js`, `styles.css`, `manifest.json` to your vault `VaultFolder/.obsidian/plugins/text-snippets-obsidian/`.
-
+- Clone this repo to `vaultfolder/.obsidian/plugins/`
+- `cd text-snippets-obsidian`
+- `npm i`
+- `npm run build`
